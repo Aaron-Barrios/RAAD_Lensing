@@ -22,7 +22,17 @@ Citations were checked against Crossref, arXiv, and publisher or repository reco
    not in image pixels. A Gaussian blur plus white pixel noise is fine as an idealized
    first model, but the proposal should say that it is an idealization (see §3).
 
-   **Proposed Solution:** TODO
+   **Proposed Solution:** Model the instrument rather than the two sources. The
+   observation step takes the Fourier transform of each true image, keeps only the
+   $(u,v)$ points an array actually measures (starting from the EHT 2017 coverage), adds
+   thermal noise to those visibilities, and transforms back to a dirty image,
+   $I_{\rm dirty} = I_{\rm true}\circledast B + n_{\rm corr}$. Keep a plain Gaussian beam
+   as the idealized baseline. Randomize the array, source declination, frequency, and
+   dropped stations to get many distinct kernels, and sweep the beam FWHM over
+   $0.5$–$6\,r_g$ (M87\* is $\approx5.3\,r_g$, Sgr A\* $\approx4\,r_g$). In the proposal,
+   replace "telescope PSF" with "interferometric (VLBI) sampling" and state that the
+   Gaussian case is an idealization. Station gain errors, Sgr A\* scattering, and full
+   `ehtim` reconstructions are stretch goals.
 
 2. **The emission model doesn't fit the targets.** A Novikov–Thorne (NT) disk is
    optically thick and geometrically thin, and it glows thermally in the UV and X-ray
@@ -35,15 +45,34 @@ Citations were checked against Crossref, arXiv, and publisher or repository reco
    The abstract talks about photon rings. An opaque NT disk shows mostly the direct
    image plus a faint $n=1$ ring.
 
+   **Proposed Solution:** Make the optically thin equatorial model (Model B) the main
+   training set, since it matches the 230 GHz regime and produces the $n=1,2$ photon
+   subrings and inner shadow. Keep the NT disk (Model A) as a second emission model,
+   framed as "a thin disk observed at higher resolution," and use the pair for the
+   cross-model hallucination test (item 8). Both come from the same ray tracer, so the
+   extra cost is small.
+
 3. **What "analytical lensing deflection" means needs to be pinned down.** If it means
    a Beloborodov-type approximation, that is Schwarzschild-only and throws away exactly
    the spin dependence we are trying to infer. Kerr null geodesics have closed-form
    solutions (Gralla & Lupsasca 2020), and public codes implement them, so we should do
    the exact calculation. It is not slow.
 
+   **Proposed Solution:** Use exact Kerr ray tracing with `kgeo` or AART, which
+   implement the Gralla & Lupsasca (2020) closed-form solutions. Replace "analytical
+   lensing deflection" in the proposal with "exact (closed-form) Kerr null geodesics."
+   Validate in week 1: the $a=0$ shadow edge at $\sqrt{27}\,r_g$, the ISCO inner edge,
+   and a qualitative match to Luminet (1979).
+
 4. **"Traditional deconvolution is slow" is not accurate.** Richardson–Lucy and Wiener
    filtering take milliseconds. The honest argument is that deconvolution is ill-posed
    and generic priors are bad, while a learned prior fits this image class.
+
+   **Proposed Solution:** Rewrite the motivation as "deconvolution is ill-posed, and
+   generic regularizers do not encode what black hole images look like; a network can
+   learn that prior from physically motivated simulations." Keep Richardson–Lucy and
+   Wiener as the classical baselines, and add CLEAN or `ehtim` RML for the dirty-beam
+   case if time allows.
 
 5. **Spin is weakly identifiable.** The size of the critical curve changes by only
    about 4% across spin (Johannsen & Psaltis 2010). Most of the spin information sits
@@ -55,12 +84,28 @@ Citations were checked against Crossref, arXiv, and publisher or repository reco
      point estimate of $a$ under a degeneracy is misleading.
    - Consider sampling retrograde spins too, $a\in[-0.99,0.99]$.
 
+   **Proposed Solution:** The regression head predicts $(a,\cos i)$ with $r_{\rm ISCO}$
+   as an auxiliary target, each with a mean and a variance trained with a Gaussian
+   negative log-likelihood. Sample $a\in[-0.99,0.99]$ and $\cos i$ uniformly. Report
+   parameter errors as a function of beam size, so a weak spin constraint becomes a
+   result ("spin needs a beam of $\lesssim X\,r_g$") rather than a failure.
+
 6. **Nuisance parameters.** Either randomize or fix the position angle, the
    mass-to-distance scale (ring size in pixels), and the overall flux normalization.
    Otherwise the network can latch onto them. Rotation is also free data augmentation.
 
+   **Proposed Solution:** Fix the field of view and pixel scale in units of $r_g$, so
+   the ring size in pixels is set by physics, not by an arbitrary scale. Randomize the
+   position angle, and normalize each image to unit total flux. Document these choices
+   with the dataset so the inputs for M87\* and Sgr A\* can be prepared the same way.
+
 7. **Dataset size.** About 1,500 images is small for a U-Net. With a closed-form ray
    tracer, $10^4$–$10^5$ images take minutes to generate.
+
+   **Proposed Solution:** Generate at least $10^4$ true images per emission model, with
+   fixed train, validation, and test splits by parameter draw. Apply the observation
+   step on the fly in the DataLoader, so each epoch sees fresh beams and noise
+   realizations.
 
 8. **Loss and evaluation.**
    - Pure MSE gives oversmoothed reconstructions. Add L1 or SSIM terms.
@@ -69,17 +114,28 @@ Citations were checked against Crossref, arXiv, and publisher or repository reco
      "restore" a photon ring that isn't there, and showing that would make the
      limitations section concrete.
 
+   **Proposed Solution:** Train with a combined MSE + L1 + SSIM image loss plus the
+   parameter negative log-likelihood. Evaluate on:
+   - a held-out test set from the training model (PSNR, SSIM, parameter errors),
+   - a sweep over beam size in $r_g$ and SNR,
+   - a different emission model (Model A↔B, and GRMHD as a stretch goal),
+   - the classical baselines from item 4.
+
+   Apply the trained network to a dirty image of M87\* made from the public EHT 2017
+   visibilities with the same pipeline, and treat it as a consistency check only (for
+   example, $\hat i$ near $17^\circ$). There is no ground truth for real sources.
+
 ---
 
 ## 2. Disk models, simplest to most expensive
 
-All images should be in units of $M$ (that is, $GM/c^2$; angles in
-$\theta_g = GM/c^2D$). For scale:
+All images should be in units of the gravitational radius $r_g = GM/c^2$ (angles in
+$\theta_g = r_g/D = GM/c^2D$). For scale:
 
 - M87\*: $\theta_g\approx3.8\,\mu\mathrm{as}$.
 - Sgr A\*: $\theta_g\approx5\,\mu\mathrm{as}$.
-- The critical-curve diameter is $\approx 2\sqrt{27}\,M\approx10.4\,M$.
-- $r_{\rm ISCO}$ runs from $6M$ at $a=0$ to $\approx1.45M$ at $a=0.99$.
+- The critical-curve diameter is $\approx 2\sqrt{27}\,r_g\approx10.4\,r_g$.
+- $r_{\rm ISCO}$ runs from $6\,r_g$ at $a=0$ to $\approx1.45\,r_g$ at $a=0.99$.
 
 ### Model 0: Geometric crescents or rings (pipeline debugging only)
 
@@ -92,7 +148,7 @@ degradation and network code before the physics is ready.
 This is the proposal's model, done properly.
 
 **Ray tracing.** A pixel $(\alpha,\beta)$ for an observer at inclination $i$ has
-conserved quantities
+conserved quantities ($\alpha$, $\beta$, $\lambda$ in units of $r_g$; $\eta$ in $r_g^2$)
 
 $$\lambda = -\alpha\sin i,\qquad \eta = (\alpha^2 - a^2)\cos^2 i + \beta^2$$
 
@@ -106,12 +162,12 @@ $r_s\ge r_{\rm ISCO}$.
 $$Z_1 = 1+(1-a^2)^{1/3}\left[(1+a)^{1/3}+(1-a)^{1/3}\right],\quad
 Z_2=\sqrt{3a^2+Z_1^2},$$
 
-$$r_{\rm ISCO} = M\left[3+Z_2 \mp\sqrt{(3-Z_1)(3+Z_1+2Z_2)}\right]$$
+$$r_{\rm ISCO} = r_g\left[3+Z_2 \mp\sqrt{(3-Z_1)(3+Z_1+2Z_2)}\right]$$
 
 (upper sign prograde, lower sign retrograde).
 
-**Emitted flux** (Page & Thorne 1974). Write $x=\sqrt{r/M}$ and
-$x_0=\sqrt{r_{\rm ISCO}/M}$. Let $x_{1,2,3}$ be the roots of $x^3-3x+2a=0$:
+**Emitted flux** (Page & Thorne 1974). Write $x=\sqrt{r/r_g}$ and
+$x_0=\sqrt{r_{\rm ISCO}/r_g}$. Let $x_{1,2,3}$ be the roots of $x^3-3x+2a=0$:
 
 $$x_1 = 2\cos\left(\tfrac13\arccos a-\tfrac\pi3\right),\quad
 x_2 = 2\cos\left(\tfrac13\arccos a+\tfrac\pi3\right),\quad
@@ -119,13 +175,14 @@ x_3=-2\cos\left(\tfrac13\arccos a\right).$$
 
 Then
 
-$$F(r)=\frac{3\dot M}{8\pi M^2}\,\frac{1}{x^4(x^3-3x+2a)}\Big[x-x_0-\tfrac32 a\ln\tfrac{x}{x_0}
+$$F(r)=\frac{3\dot M c^2}{8\pi r_g^2}\,\frac{1}{x^4(x^3-3x+2a)}\Big[x-x_0-\tfrac32 a\ln\tfrac{x}{x_0}
 -\sum_{k=1}^{3}\frac{3(x_k-a)^2}{x_k\prod_{j\ne k}(x_k-x_j)}\ln\frac{x-x_k}{x_0-x_k}\Big].$$
 
-**Redshift.** For Keplerian circular orbits,
+**Redshift.** For Keplerian circular orbits, with $r$ in units of $r_g$ and $\Omega$ in
+units of $c/r_g$,
 
-$$\Omega=\frac{M^{1/2}}{r^{3/2}+aM^{1/2}},\qquad
-u^t=\frac{r^{3/2}+aM^{1/2}}{r^{3/4}\sqrt{r^{3/2}-3Mr^{1/2}+2aM^{1/2}}},\qquad
+$$\Omega=\frac{1}{r^{3/2}+a},\qquad
+u^t=\frac{r^{3/2}+a}{r^{3/4}\sqrt{r^{3/2}-3r^{1/2}+2a}},\qquad
 g=\frac{1}{u^t(1-\Omega\lambda)}.$$
 
 The factor $g$ combines Doppler boosting and gravitational redshift in one expression,
@@ -136,7 +193,7 @@ frequency, use $I_\nu=g^3B_\nu(T_{\rm em})$ with $T_{\rm em}=(F/\sigma)^{1/4}$ a
 $\nu_{\rm em}=\nu/g$.
 
 **Validation.** Reproduce Luminet (1979), check that the $a=0$ shadow edge sits at
-$\sqrt{27}M$, and compare against the test problems in Gold et al. (2020).
+$\sqrt{27}\,r_g$, and compare against the test problems in Gold et al. (2020).
 
 **Codes:**
 
@@ -225,10 +282,10 @@ Not recommended for this project.
 ### The convention in the literature
 
 - To compare models with data, the EHT blurs model images with a **circular Gaussian of
-  FWHM 20 μas** (EHT 2019 Papers IV and VI). That is $\approx5.3M$ for M87\* and
-  $\approx4M$ for Sgr A\*.
+  FWHM 20 μas** (EHT 2019 Papers IV and VI). That is $\approx5.3\,r_g$ for M87\* and
+  $\approx4\,r_g$ for Sgr A\*.
 - So the proposal's Gaussian choice *is* standard, but the width should be parametrized
-  in units of $M$, not pixels.
+  in units of $r_g$, not pixels.
 
 ### Sgr A\* scattering
 
@@ -249,7 +306,7 @@ Not recommended for this project.
 
 | Tier | Kernel | Noise | Role |
 |---|---|---|---|
-| 1 | Gaussian, FWHM $\sim U[0.5,6]\,M$, optional ellipticity and PA | Gaussian or Poisson, added after blur, SNR range | Main experiment (the proposed one, in physical units) |
+| 1 | Gaussian, FWHM $\sim U[0.5,6]\,r_g$, optional ellipticity and PA | Gaussian or Poisson, added after blur, SNR range | Main experiment (the proposed one, in physical units) |
 | 2 | Anisotropic Sgr A\* scattering kernel ± Moffat | same | Robustness to the kernel shape |
 | 3 | `ehtim` (Chael+2016, 2018): observe with the EHT 2017 array, thermal noise and gains → dirty image or RML reconstruction | visibility-domain | "Realistic" test; good for the limitations section |
 
@@ -277,7 +334,7 @@ compare with the blind case. That comparison is cheap and informative.
    Model B (optically thin, $n\le2$), both from `kgeo` or AART. Sample
    $a\in[-0.99,0.99]$, $\cos i$ uniform, and a random PA, for about $10^4$ images or
    more.
-2. **Degradation:** Tier 1 Gaussian in units of $M$ with SNR sweeps as the core. Use
+2. **Degradation:** Tier 1 Gaussian in units of $r_g$ with SNR sweeps as the core. Use
    Tier 2 and Tier 3 as robustness tests.
 3. **Out-of-distribution test:** a few GRMHD snapshots (KHARMA → `ipole`). The trained
    network sees them only at test time.
