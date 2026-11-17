@@ -1,0 +1,14 @@
+# LaTeX build artifacts
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.synctex(busy)
+*.toc
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+
+# arXiv source tarballs of reference papers
+arXiv-*.tar.gz

@@ -1,0 +1,439 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks = true,
+  linkcolor  = blue!70!black,
+  citecolor  = green!50!black,
+  urlcolor   = magenta!70!black
+}
+
+\newcommand{\ehtimnote}[1]{%
+  \par\smallskip\noindent
+  \colorbox{gray!12}{\parbox{\dimexpr\linewidth-2\fboxsep}{\small\textit{In ehtim:} #1}}%
+  \par\smallskip}
+
+\title{Interferometric Sampling and Data Corruption\\in the Event Horizon Telescope}
+\author{Aaron Barrios}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\noindent This note describes how a very-long-baseline interferometer (VLBI)
+such as the Event Horizon Telescope (EHT) measures a source, how much of the
+image's Fourier information it actually records, and how those measurements
+are corrupted. Interstellar scattering and intrinsic source variability are
+neglected throughout; the source is treated as a static total-intensity image
+$I(x,y)$ on the sky.
+
+Shaded notes point to where each step is implemented in \texttt{ehtim}
+(eht-imaging, \url{https://github.com/achael/eht-imaging}) \cite{Chael2018};
+names refer to version 1.3.2.
+
+%----------------------------------------------------------------------
+\section{What an Interferometer Measures}
+
+\subsection{Visibilities}
+
+Let $(x,y)$ be angular coordinates on the sky (in radians) relative to the
+phase center, and let $I(x,y)$ be the sky brightness. Two antennas $i$ and $j$
+separated by the baseline vector $\mathbf{b}_{ij}$ record electric fields
+$E_i(t)$ and $E_j(t)$. Their time-averaged correlation is, by the
+van Cittert--Zernike theorem \cite{TMS2017}, the \emph{complex visibility}
+\begin{equation}
+V(u,v) = \iint I(x,y)\, e^{-2\pi i\,(ux + vy)}\,dx\,dy,
+\label{eq:vis}
+\end{equation}
+i.e.\ the two-dimensional Fourier transform of the image evaluated at the
+spatial frequency $(u,v)$. Here $(u,v)$ is the projection of
+$\mathbf{b}_{ij}$ onto the plane perpendicular to the line of sight,
+measured in wavelengths $\lambda$. A baseline of projected length $|\mathbf{b}|$
+probes angular structure on the scale
+\begin{equation}
+\theta \sim \frac{\lambda}{|\mathbf{b}|}.
+\end{equation}
+
+Because $I$ is real, the visibilities are Hermitian,
+\begin{equation}
+V(-u,-v) = V^*(u,v),
+\end{equation}
+so every measurement fixes two conjugate points of the $(u,v)$ plane.
+
+\ehtimnote{the discrete transform is built in
+\texttt{observing.obs\_helpers.ftmatrix}. It uses the opposite sign,
+$e^{+2\pi i(ux+vy)}$, with $(u,v)$ defined from site~1 minus site~2, and its
+$x$ axis increases toward the east (pixel columns run in decreasing $x$). It
+also multiplies each visibility by the Fourier transform of a pixel ``pulse''
+(triangle by default). A custom pipeline must match these conventions to agree
+with \texttt{ehtim}.}
+
+\subsection{Baseline coordinates and Earth-rotation synthesis}
+
+Write the baseline in an equatorial frame with components
+$(L_X, L_Y, L_Z)$, where $Z$ points to the celestial pole, $X$ toward hour
+angle $H = 0$ on the celestial equator, and $Y$ toward $H = -6^{\rm h}$. For a
+source at declination $\delta$ observed at hour angle $H$ \cite{TMS2017},
+\begin{align}
+u &= \frac{1}{\lambda}\left(L_X\sin H + L_Y\cos H\right), \\
+v &= \frac{1}{\lambda}\left(-L_X\sin\delta\cos H + L_Y\sin\delta\sin H + L_Z\cos\delta\right).
+\end{align}
+As the Earth rotates, $H$ advances and each baseline traces an arc of the
+ellipse
+\begin{equation}
+u^2 + \left(\frac{v - v_0}{\sin\delta}\right)^2 = \frac{L_X^2 + L_Y^2}{\lambda^2},
+\qquad v_0 = \frac{L_Z\cos\delta}{\lambda},
+\end{equation}
+together with its Hermitian reflection. An array of $N$ stations has
+\begin{equation}
+N_{\rm bl} = \frac{N(N-1)}{2}
+\end{equation}
+baselines, each contributing one such track while the source is above the
+horizon at both stations.
+
+\ehtimnote{station positions and SEFDs are read from an array file with
+\texttt{eh.array.load\_txt} (example files such as
+\texttt{arrays/EHT2017\_m87.txt} are in the GitHub repository).
+\texttt{Image.observe(array, tint, tadv, tstart, tstop, bw, ...)} or
+\texttt{Array.obsdata(...)} generates the tracks, with elevation limits
+\texttt{elevmin}~$=10^\circ$ and \texttt{elevmax}~$=85^\circ$ by default.
+\texttt{Obsdata.plotall('u','v')} plots the coverage.}
+
+\subsection{Resolution and scale}
+
+The EHT observes at $\nu \approx 230$~GHz ($\lambda \approx 1.3$~mm) with
+baselines up to $|\mathbf{b}|_{\max} \approx 10{,}700$~km, so
+\begin{equation}
+|\mathbf{u}|_{\max} = \frac{|\mathbf{b}|_{\max}}{\lambda} \approx 8\times10^{9}\,\lambda
+\quad\Longrightarrow\quad
+\theta_{\min} \approx \frac{\lambda}{|\mathbf{b}|_{\max}} \approx 25~\mu{\rm as}.
+\end{equation}
+For comparison, the angular gravitational radius
+$\theta_g = GM/(c^2 D)$ is $\approx 3.8~\mu$as for M87$^*$ \cite{EHT2019I} and
+$\approx 4.8~\mu$as for Sgr~A$^*$ \cite{EHT2022I}, so the nominal resolution
+is $\sim 5$--$7\,\theta_g$. The $n \ge 1$ photon rings, whose widths are a
+small fraction of $\theta_g$, are therefore unresolved.
+
+%----------------------------------------------------------------------
+\section{Incomplete Sampling of Fourier Space}
+
+\subsection{The sampling function}
+
+An observation measures the visibility only at a finite set of points
+$\{(u_k, v_k)\}_{k=1}^{K}$, one per baseline per integration time. Define the
+sampling function
+\begin{equation}
+S(u,v) = \sum_{k=1}^{K}\left[\delta(u - u_k)\,\delta(v - v_k) + \delta(u + u_k)\,\delta(v + v_k)\right].
+\end{equation}
+The measured data are equivalent to $S(u,v)\,V(u,v)$.
+
+\subsection{Dirty image and dirty beam}
+
+Inverting the sampled visibilities directly gives the \emph{dirty image},
+\begin{equation}
+I_D(x,y) = \iint S(u,v)\,W(u,v)\,V(u,v)\,e^{2\pi i\,(ux + vy)}\,du\,dv
+= \left(I * B_D\right)(x,y),
+\label{eq:dirty}
+\end{equation}
+where $W(u,v)$ is a chosen weighting (natural weighting $W = 1/\sigma^2$,
+uniform weighting $W \propto 1/\text{local sample density}$), $*$ denotes
+convolution, and the \emph{dirty beam} is
+\begin{equation}
+B_D(x,y) = \iint S(u,v)\,W(u,v)\,e^{2\pi i\,(ux + vy)}\,du\,dv.
+\end{equation}
+The dirty beam is the interferometer's point-spread function. Unlike a
+telescope PSF it has strong sidelobes and negative regions, determined
+entirely by the geometry of the $(u,v)$ coverage.
+
+\ehtimnote{\texttt{Obsdata.dirtyimage(npix, fov, weighting=...)} and
+\texttt{Obsdata.dirtybeam(npix, fov, weighting=...)}, with
+\texttt{weighting} set to \texttt{'uniform'} (default) or \texttt{'natural'}.}
+
+\subsection{What is lost}
+
+Equation~\eqref{eq:dirty} shows the essential difference from ordinary
+blurring. A Gaussian PSF multiplies the Fourier transform by a smooth,
+everywhere-positive function: high spatial frequencies are attenuated but
+still present. The sampling function $S$ is \emph{zero} almost everywhere.
+Any image component $\Delta I$ whose Fourier transform vanishes on all sampled
+points,
+\begin{equation}
+\widetilde{\Delta I}(u_k, v_k) = 0 \quad \forall k,
+\end{equation}
+produces identical data and is invisible to the instrument (the null space of
+the measurement). Reconstructing such components requires prior assumptions
+about the image, not data.
+
+Coverage is incomplete for several reasons:
+\begin{itemize}
+  \item \textbf{Few stations.} The 2017 campaign used eight stations at six
+        geographic sites \cite{EHT2019II}, giving at most a few tens of
+        distinct tracks.
+  \item \textbf{No baselines beyond an Earth diameter.} Spatial frequencies
+        above $|\mathbf{u}|_{\max}$ are never measured, which sets the
+        resolution limit above.
+  \item \textbf{Few short baselines.} Only intra-site pairs (e.g.\ ALMA--APEX,
+        SMA--JCMT) probe large angular scales; structure between those scales
+        and the shortest inter-site baseline is poorly constrained.
+  \item \textbf{Limited mutual visibility.} A baseline exists only while the
+        source is above the elevation limit at both stations, so tracks are
+        short arcs rather than full ellipses.
+  \item \textbf{Anisotropic coverage.} The distribution of stations makes
+        the coverage, and hence the effective beam, elongated; resolution
+        differs between directions on the sky.
+  \item \textbf{Lost data.} Weather, technical failures, and scans dropped
+        during calibration remove additional points.
+\end{itemize}
+
+\ehtimnote{coverage can be degraded by removing stations
+(\texttt{Array.make\_subarray}, \texttt{Obsdata.flag\_sites}) or time ranges
+(\texttt{Obsdata.flag\_UT\_range}), or by shortening \texttt{tstart}--\texttt{tstop}
+in \texttt{observe}.}
+
+\subsection{Restoring beam}
+
+For display, reconstructed images are often convolved with a
+\emph{restoring} (``CLEAN'') beam: an elliptical Gaussian fitted to the main
+lobe of $B_D$ \cite{Hogbom1974}. For the EHT this has a full width at half
+maximum of $\sim 20~\mu$as \cite{EHT2019IV}. The restoring beam is a
+presentation choice that suppresses unconstrained high-frequency structure;
+it is not the physical measurement process.
+
+\ehtimnote{\texttt{Obsdata.fit\_beam()} returns the fitted
+$(\text{FWHM}_{\rm maj}, \text{FWHM}_{\rm min}, \theta)$, and
+\texttt{Image.blur\_gauss(beamparams)} convolves an image with it.}
+
+%----------------------------------------------------------------------
+\section{Corruption of the Measured Visibilities}
+
+\subsection{Measurement equation}
+
+Neglecting polarization, the visibility recorded on baseline $ij$ at time $t$
+is
+\begin{equation}
+V_{ij}^{\rm obs}(t) = g_i(t)\,g_j^*(t)\,V_{ij}(t) + \epsilon_{ij}(t),
+\label{eq:rime}
+\end{equation}
+where $V_{ij}(t) = V(u_{ij}(t), v_{ij}(t))$ is the true visibility,
+$g_i = |g_i|\,e^{i\phi_i}$ is a complex \emph{station gain}, and
+$\epsilon_{ij}$ is thermal noise.
+
+\subsection{Thermal noise}
+
+The noise $\epsilon_{ij}$ is complex Gaussian with zero mean and standard
+deviation (per real and imaginary component)
+\begin{equation}
+\sigma_{ij} = \frac{1}{\eta_Q}\sqrt{\frac{{\rm SEFD}_i\,{\rm SEFD}_j}{2\,\Delta\nu\,\tau}},
+\qquad
+{\rm SEFD} = \frac{2k_B\,T_{\rm sys}^*}{\eta_A\,A_{\rm geom}},
+\label{eq:thermal}
+\end{equation}
+where $\Delta\nu$ is the bandwidth, $\tau$ the integration time,
+$\eta_Q \approx 0.88$ the quantization efficiency for two-bit sampling,
+$T_{\rm sys}^*$ the system temperature corrected for atmospheric opacity,
+$\eta_A$ the aperture efficiency, and $A_{\rm geom}$ the collecting area
+\cite{TMS2017}. The system equivalent flux density (SEFD) ranges from
+$\sim 10^2$~Jy for phased ALMA to $\sim 10^4$~Jy for the smaller single
+dishes, so baselines to ALMA are by far the most sensitive. Noise in the
+visibility domain maps to spatially correlated noise in the image, shaped by
+the dirty beam; it is not independent from pixel to pixel.
+
+\ehtimnote{Eq.~\eqref{eq:thermal} is \texttt{observing.obs\_helpers.blnoise},
+including the $1/0.88$ factor; it is applied when
+\texttt{observe(..., add\_th\_noise=True)} (the default), using the SEFDs in
+the array file.}
+
+\subsection{Station phase errors}
+
+At millimeter wavelengths, turbulent water vapor in the troposphere changes
+the signal path length above each station on timescales of seconds. The
+resulting phases $\phi_i(t)$ are effectively random, which limits coherent
+integration to $\tau \sim 10$~s and makes the absolute phase of
+$V_{ij}^{\rm obs}$ unusable without calibration.
+
+\subsection{Station amplitude errors}
+
+Uncertainties in $T_{\rm sys}^*$, aperture efficiency, pointing, and focus
+give gain amplitudes $|g_i|$ that typically deviate from unity by
+$\sim 5$--$20\%$ and can vary from scan to scan.
+
+\ehtimnote{in \texttt{observe}, \texttt{phasecal=False} adds random station
+phases and \texttt{ampcal=False} adds random gain amplitudes, with fractional
+scatter \texttt{gainp} and systematic offset \texttt{gain\_offset} (both
+$0.1$ by default). \texttt{stabilize\_scan\_phase} and
+\texttt{stabilize\_scan\_amp} hold the errors constant within a scan.}
+
+\subsection{Non-closing systematics}
+
+Errors that do not factor into station-based terms (e.g.\ baseline-dependent
+effects, residual polarization leakage) are commonly represented by an
+additional fractional noise floor added in quadrature,
+\begin{equation}
+\sigma_{ij}^2 \;\to\; \sigma_{ij}^2 + \left(f_{\rm sys}\,|V_{ij}|\right)^2,
+\end{equation}
+with $f_{\rm sys}$ of order a percent \cite{EHT2019IV}.
+
+\ehtimnote{\texttt{Obsdata.add\_fractional\_noise(f\_sys)}.}
+
+%----------------------------------------------------------------------
+\section{Closure Quantities}
+
+Because the gains in Eq.~\eqref{eq:rime} are attached to stations, certain
+combinations of visibilities are independent of them.
+
+\paragraph{Closure phase.} For a triangle of stations $(i,j,k)$,
+\begin{equation}
+\psi_{ijk} = \arg V_{ij}^{\rm obs} + \arg V_{jk}^{\rm obs} + \arg V_{ki}^{\rm obs},
+\end{equation}
+in which every station phase $\phi_i$ cancels.
+
+\paragraph{Closure amplitude.} For a quadrangle $(i,j,k,l)$,
+\begin{equation}
+A_{ijkl} = \frac{|V_{ij}^{\rm obs}|\,|V_{kl}^{\rm obs}|}{|V_{ik}^{\rm obs}|\,|V_{jl}^{\rm obs}|},
+\end{equation}
+in which every gain amplitude $|g_i|$ cancels.
+
+\paragraph{Information content.} With $N$ stations observing simultaneously,
+the numbers of independent closure phases and closure amplitudes are
+\begin{equation}
+N_\psi = \frac{(N-1)(N-2)}{2}, \qquad N_A = \frac{N(N-3)}{2},
+\end{equation}
+compared with $N(N-1)/2$ visibility phases and amplitudes. Closure phases
+discard the absolute position of the image; closure amplitudes discard the
+total flux. At high signal-to-noise, the noise in each closure quantity is
+approximately
+\begin{equation}
+\sigma_\psi \approx \sqrt{\sum_{\rm baselines} \left(\frac{\sigma}{|V|}\right)^2},
+\qquad
+\sigma_{\ln A} \approx \sqrt{\sum_{\rm baselines} \left(\frac{\sigma}{|V|}\right)^2},
+\end{equation}
+summed over the three or four baselines involved \cite{Blackburn2020}.
+
+\ehtimnote{\texttt{Obsdata.c\_phases(count='min')} and
+\texttt{Obsdata.c\_amplitudes(count='min', ctype='logcamp')} return
+independent sets; \texttt{count='max'} returns all (redundant) combinations.}
+
+%----------------------------------------------------------------------
+\section{Image Reconstruction}
+
+Recovering $I(x,y)$ from the corrupted, incomplete data is an ill-posed
+inverse problem: infinitely many images fit the data equally well. Two
+families of methods are used by the EHT \cite{EHT2019IV}.
+
+\paragraph{CLEAN.} The image is modeled as a sum of point sources found
+iteratively by subtracting scaled, shifted copies of $B_D$ from $I_D$, with
+self-calibration of the gains \cite{Hogbom1974}.
+
+\paragraph{Regularized maximum likelihood (RML).} The image is found by
+minimizing
+\begin{equation}
+J(I) = \sum_{\rm data} \alpha_d\,\chi^2_d(I) + \sum_R \beta_R\,\mathcal{R}(I),
+\end{equation}
+where the $\chi^2_d$ terms compare the model with visibility amplitudes,
+closure phases, or closure amplitudes, and the regularizers $\mathcal{R}$
+(maximum entropy, total variation, sparsity, etc.)\ encode prior assumptions
+about the image \cite{Chael2016,Chael2018}. A learned reconstruction network
+plays the role of the regularizer: it supplies the prior that fills the null
+space of the measurement.
+
+\ehtimnote{RML imaging is \texttt{Imager(obs, init\_im, data\_term=\{...\},
+reg\_term=\{...\})} followed by \texttt{make\_image\_I()}. Data terms include
+\texttt{'vis'}, \texttt{'amp'}, \texttt{'cphase'} and \texttt{'logcamp'};
+regularizers include \texttt{'simple'} (maximum entropy), \texttt{'tv'},
+\texttt{'tv2'}, \texttt{'l1w'} and \texttt{'gs'}. Self-calibration of the
+gains is \texttt{calibrating.self\_cal.self\_cal}; CLEAN-style routines are in
+\texttt{imaging/clean.py}, though dedicated packages (e.g.\ DIFMAP) are
+standard for CLEAN.}
+
+%----------------------------------------------------------------------
+\section{Connecting Simulated Images to Visibilities}
+
+A ray-traced image computed on a grid in units of $GM/c^2$ must be converted
+to angular units before Eq.~\eqref{eq:vis} can be applied:
+\begin{equation}
+x\,[{\rm rad}] = \theta_g\,\alpha, \qquad
+\theta_g = \frac{GM}{c^2 D}.
+\end{equation}
+For a pixel size $\Delta x$ and field of view $L$, the discrete Fourier
+transform samples spatial frequencies up to $1/(2\Delta x)$ with spacing
+$1/L$. Avoiding aliasing of the longest EHT baselines requires
+\begin{equation}
+\Delta x < \frac{1}{2|\mathbf{u}|_{\max}} \approx 12~\mu{\rm as},
+\end{equation}
+which is easily satisfied by ray-traced images ($\Delta x \sim 1~\mu$as), and
+the field of view must be large enough that the image goes to zero at its
+edges. Because the sampled $(u_k, v_k)$ do not lie on the FFT grid,
+visibilities are evaluated by direct or non-uniform Fourier transforms
+\cite{Chael2018}.
+
+\ehtimnote{a ray-traced array becomes
+\texttt{eh.image.Image(image, psize, ra, dec, rf=...)} with \texttt{psize}
+in radians and pixel values in Jy. The transform in \texttt{observe} is
+selected by \texttt{ttype}: \texttt{'dtft'} (direct, exact but slow),
+\texttt{'nfft'} (default; needs the \texttt{pynfft} package) or
+\texttt{'fast'} (padded FFT plus interpolation, padding set by
+\texttt{fft\_pad\_factor}).}
+
+%----------------------------------------------------------------------
+\begin{thebibliography}{9}
+
+\bibitem{TMS2017}
+A.~R. Thompson, J.~M. Moran, and G.~W. Swenson,
+\emph{Interferometry and Synthesis in Radio Astronomy}, 3rd ed.\
+(Springer, Cham, 2017), doi:10.1007/978-3-319-44431-4 (open access).
+
+\bibitem{EHT2019I}
+Event Horizon Telescope Collaboration,
+``First M87 Event Horizon Telescope results. I. The shadow of the
+supermassive black hole,''
+\emph{Astrophys.\ J.\ Lett.} \textbf{875}, L1 (2019), arXiv:1906.11238.
+
+\bibitem{EHT2019II}
+Event Horizon Telescope Collaboration,
+``First M87 Event Horizon Telescope results. II. Array and instrumentation,''
+\emph{Astrophys.\ J.\ Lett.} \textbf{875}, L2 (2019), arXiv:1906.11239.
+
+\bibitem{EHT2019IV}
+Event Horizon Telescope Collaboration,
+``First M87 Event Horizon Telescope results. IV. Imaging the central
+supermassive black hole,''
+\emph{Astrophys.\ J.\ Lett.} \textbf{875}, L4 (2019), arXiv:1906.11241.
+
+\bibitem{EHT2022I}
+Event Horizon Telescope Collaboration,
+``First Sagittarius A$^*$ Event Horizon Telescope results. I. The shadow of
+the supermassive black hole in the center of the Milky Way,''
+\emph{Astrophys.\ J.\ Lett.} \textbf{930}, L12 (2022),
+doi:10.3847/2041-8213/ac6674.
+
+\bibitem{Hogbom1974}
+J.~A. H\"ogbom,
+``Aperture synthesis with a non-regular distribution of interferometer
+baselines,''
+\emph{Astron.\ Astrophys.\ Suppl.\ Ser.} \textbf{15}, 417 (1974).
+
+\bibitem{Chael2016}
+A.~A. Chael \emph{et al.},
+``High-resolution linear polarimetric imaging for the Event Horizon
+Telescope,''
+\emph{Astrophys.\ J.} \textbf{829}, 11 (2016), arXiv:1605.06156.
+
+\bibitem{Chael2018}
+A.~A. Chael \emph{et al.},
+``Interferometric imaging directly with closure phases and closure
+amplitudes,''
+\emph{Astrophys.\ J.} \textbf{857}, 23 (2018), arXiv:1803.07088.
+
+\bibitem{Blackburn2020}
+L.~Blackburn \emph{et al.},
+``Closure statistics in interferometric data,''
+\emph{Astrophys.\ J.} \textbf{894}, 31 (2020), arXiv:1910.02062.
+
+\end{thebibliography}
+
+\end{document}

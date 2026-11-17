@@ -1,0 +1,532 @@
+\documentclass[11pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\hypersetup{
+  colorlinks = true,
+  linkcolor  = blue!70!black,
+  citecolor  = green!50!black,
+  urlcolor   = magenta!70!black
+}
+
+\title{Optically Thin Equatorial Emission and Analytic Kerr Ray Tracing:\\
+the Gralla--Lupsasca--Marrone Model}
+\author{Aaron Barrios}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\noindent Units: $G = c = M = 1$ throughout. Notation follows
+Gralla, Lupsasca \& Marrone (GLM) \cite{GLM2020} and the Gralla--Lupsasca
+geodesic papers \cite{GL2020lensing,GL2020null} on which it is built.
+
+%----------------------------------------------------------------------
+\section{Model Assumptions}
+
+\begin{enumerate}
+  \item All emission originates in the equatorial plane $\theta = \pi/2$.
+  \item The emitting region is optically thin, so a light ray gains intensity
+        at \emph{every} crossing of the equatorial plane. In practice this
+        requires observing at $\nu \gtrsim 230$~GHz.
+  \item The source is stationary and axisymmetric.
+  \item Matter follows prograde circular geodesics outside the ISCO and
+        plunging geodesics inside it, so emission extends down to the horizon.
+  \item The finite geometric thickness of the flow is represented only by a
+        multiplicative ``fudge factor'' $f$ on the lensed images.
+  \item The model is bolometric; the overall normalization is fixed
+        externally, and only the image morphology is predicted.
+\end{enumerate}
+
+%----------------------------------------------------------------------
+\section{Spacetime}
+
+The Kerr metric in Boyer--Lindquist coordinates is
+\begin{equation}
+ds^2 = -\left(1-\frac{2r}{\Sigma}\right)dt^2
+       - \frac{4ar\sin^2\theta}{\Sigma}\,dt\,d\phi
+       + \frac{\Sigma}{\Delta}\,dr^2 + \Sigma\,d\theta^2
+       + \left(r^2+a^2+\frac{2a^2r\sin^2\theta}{\Sigma}\right)\sin^2\theta\,d\phi^2,
+\end{equation}
+\begin{equation}
+\Sigma = r^2 + a^2\cos^2\theta, \qquad \Delta = r^2 - 2r + a^2, \qquad
+r_\pm = 1 \pm \sqrt{1 - a^2},
+\end{equation}
+with $r_+$ the event horizon and $r_-$ the inner horizon.
+
+%----------------------------------------------------------------------
+\section{Motion of the Emitting Gas}
+
+\subsection{\texorpdfstring{Circular orbits ($r \ge r_{\rm ISCO}$)}{Circular orbits (r >= r\_ISCO)}}
+
+Prograde circular equatorial geodesics have
+\begin{gather}
+u^\mu = u^t\left(\partial_t + \Omega\,\partial_\phi\right), \qquad
+\Omega = \frac{1}{r^{3/2} + a}, \qquad
+u^t = \frac{r^{3/2} + a}{\sqrt{r^3 - 3r^2 + 2a\,r^{3/2}}}, \\[1ex]
+E(r) = \frac{r^{3/2} - 2r^{1/2} + a}{r^{3/4}\sqrt{r^{3/2} - 3r^{1/2} + 2a}}, \qquad
+L(r) = \frac{r^2 - 2a\,r^{1/2} + a^2}{r^{3/4}\sqrt{r^{3/2} - 3r^{1/2} + 2a}}.
+\end{gather}
+These orbits are stable for $r \ge r_{\rm ISCO}$ \cite{Bardeen1972}:
+\begin{gather}
+Z_1 = 1 + (1-a^2)^{1/3}\left[(1+a)^{1/3} + (1-a)^{1/3}\right], \qquad
+Z_2 = \sqrt{3a^2 + Z_1^2}, \\
+r_{\rm ISCO} = 3 + Z_2 - \sqrt{(3 - Z_1)(3 + Z_1 + 2Z_2)}.
+\end{gather}
+
+\subsection{\texorpdfstring{Plunging flow ($r_+ < r < r_{\rm ISCO}$)}{Plunging flow (r\_+ < r < r\_ISCO)}}
+
+Inside the ISCO the gas falls inward along equatorial geodesics carrying the
+ISCO's energy and angular momentum, with vanishing Carter constant
+\cite{Cunningham1975}:
+\begin{gather}
+\gamma_{\rm ms} = E(r_{\rm ISCO}) = \sqrt{1 - \frac{2}{3r_{\rm ISCO}}}, \qquad
+\lambda_{\rm ms} = \frac{L(r_{\rm ISCO})}{E(r_{\rm ISCO})}
+= \frac{r_{\rm ISCO}^2 - 2a\,r_{\rm ISCO}^{1/2} + a^2}{r_{\rm ISCO}^{3/2} - 2r_{\rm ISCO}^{1/2} + a}, \\[1ex]
+H(r) = \frac{2r - a\lambda_{\rm ms}}{\Delta(r)},
+\end{gather}
+\begin{align}
+u^t &= \gamma_{\rm ms}\left[1 + \frac{2}{r}\bigl(1 + H\bigr)\right], \\
+u^\phi &= \frac{\gamma_{\rm ms}}{r^2}\left(\lambda_{\rm ms} + aH\right), \\
+u^r &= -\sqrt{\frac{2}{3r_{\rm ISCO}}}\left(\frac{r_{\rm ISCO}}{r} - 1\right)^{3/2}.
+\end{align}
+
+%----------------------------------------------------------------------
+\section{Emission Profile}
+
+The rest-frame emitted intensity $I_{\rm em}(r)$ is a free function of the
+Boyer--Lindquist radius. GLM adopt a form derived from Johnson's $S_U$
+distribution \cite{Johnson1949}:
+\begin{equation}
+I_{\rm em}(r) = J(r;\gamma,\mu,\sigma)
+= \frac{\exp\!\left\{-\tfrac12\left[\gamma + \operatorname{arcsinh}\!\left(\dfrac{r-\mu}{\sigma}\right)\right]^2\right\}}{\sqrt{(r-\mu)^2 + \sigma^2}},
+\label{eq:J}
+\end{equation}
+where $\mu$ sets the location, $\sigma$ the width, and $\gamma$ the asymmetry of
+the profile. The three profiles considered in \cite{GLM2020} are listed in
+Table~\ref{tab:profiles}.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lcccl}
+\toprule
+Profile & $\gamma$ & $\mu$ & $\sigma$ & Character \\
+\midrule
+1 & $-3/2$ & $r_-$ & $1/2$ & peaks near the horizon, extended tail \\
+2 & $0$    & $r_-$ & $1/2$ & more centrally concentrated \\
+3 & $-2$   & $r_{\rm ISCO} - 1/3$ & $1/4$ & effectively truncated near the ISCO \\
+\bottomrule
+\end{tabular}
+\caption{Emission profiles of Eq.~\eqref{eq:J} used by GLM.}
+\label{tab:profiles}
+\end{table}
+
+%----------------------------------------------------------------------
+\section{Photon Conserved Quantities and Screen Coordinates}
+
+A distant observer at inclination $\theta_o$ uses Bardeen screen coordinates
+$(\alpha,\beta)$ \cite{Bardeen1973}. Each pixel fixes the photon's energy-rescaled
+angular momentum $\lambda$ and Carter constant $\eta$:
+\begin{equation}
+\lambda = -\alpha\sin\theta_o, \qquad
+\eta = \beta^2 + \left(\alpha^2 - a^2\right)\cos^2\theta_o,
+\end{equation}
+with $\operatorname{sign}(\beta)$ the sign of $p^\theta$ at the observer.
+The radial and polar potentials are
+\begin{equation}
+\mathcal{R}(r) = \left(r^2 + a^2 - a\lambda\right)^2 - \Delta(r)\left[\eta + (\lambda - a)^2\right],
+\qquad
+\Theta(\theta) = \eta + a^2\cos^2\theta - \lambda^2\cot^2\theta,
+\end{equation}
+and the geodesic equation, written in Mino time \cite{Mino2003}, requires the
+radial and polar Mino times to agree \cite{GL2020lensing}:
+\begin{equation}
+I_r \equiv \int \frac{dr}{\pm\sqrt{\mathcal{R}(r)}}
+= \int \frac{d\theta}{\pm\sqrt{\Theta(\theta)}} \equiv G_\theta.
+\end{equation}
+
+%----------------------------------------------------------------------
+\section{Polar Motion: Mino Time to Equatorial Crossings}
+
+Writing $u = \cos^2\theta$, the polar potential has roots
+\begin{equation}
+u_\pm = \Delta_\theta \pm \sqrt{\Delta_\theta^2 + \frac{\eta}{a^2}}, \qquad
+\Delta_\theta = \frac12\left(1 - \frac{\eta + \lambda^2}{a^2}\right),
+\end{equation}
+with $u_- < 0 \le u_+$ for the ($\eta > 0$) rays that reach the equator.
+The Mino time from the observer to the equatorial plane after $m$ polar
+turning points is \cite{GL2020lensing,GLM2020}
+\begin{equation}
+G_\theta^{m} = \frac{1}{a\sqrt{-u_-}}\left[\,2m\,K\!\left(\frac{u_+}{u_-}\right) - \operatorname{sign}(\beta)\,F_o\right],
+\qquad
+F_o = F\!\left(\arcsin\frac{\cos\theta_o}{\sqrt{u_+}}\;\middle|\;\frac{u_+}{u_-}\right),
+\label{eq:Gtheta}
+\end{equation}
+where $K$ and $F$ are the complete and incomplete elliptic integrals of the
+first kind. Rays with $\beta < 0$ head directly toward the equator and cross
+first at $m = 0$; rays with $\beta > 0$ must first reach a polar turning point,
+and their first crossing is $m = 1$ (the $m = 0$ value is negative and
+unphysical). The expression is singular at $a = 0$; in practice a small
+floor $a \gtrsim 10^{-3}$ or the Schwarzschild limit is used.
+
+%----------------------------------------------------------------------
+\section{Radial Motion: Source Radius}
+
+\subsection{Radial roots}
+
+Define
+\begin{equation}
+\mathcal{A} = a^2 - \eta - \lambda^2, \qquad
+\mathcal{B} = 2\left[\eta + (\lambda - a)^2\right], \qquad
+\mathcal{C} = -a^2\eta,
+\end{equation}
+let $\xi_0$ be the largest real root of the resolvent cubic
+\begin{equation}
+\xi^3 + \mathcal{A}\,\xi^2 + \left(\frac{\mathcal{A}^2}{4} - \mathcal{C}\right)\xi - \frac{\mathcal{B}^2}{8} = 0,
+\end{equation}
+and set $z = \sqrt{\xi_0/2}$. The four roots of $\mathcal{R}(r)$ are
+\cite{GL2020null}
+\begin{equation}
+r_{1,2} = -z \mp \sqrt{-\frac{\mathcal{A}}{2} - z^2 + \frac{\mathcal{B}}{4z}}, \qquad
+r_{3,4} = z \mp \sqrt{-\frac{\mathcal{A}}{2} - z^2 - \frac{\mathcal{B}}{4z}},
+\end{equation}
+with $r_{ij} \equiv r_i - r_j$.
+
+\subsection{Radial trajectory}
+
+A ray traced back from $(\alpha,\beta)$ reaches radius
+\cite{GL2020lensing,GLM2020}
+\begin{equation}
+r_s(I_r) = \frac{r_4 r_{31} - r_3 r_{41}\,\operatorname{sn}^2\!\left(\tfrac12\sqrt{r_{31}r_{42}}\,I_r - \mathcal{F}_o \,\middle|\, k\right)}
+                 {r_{31} - r_{41}\,\operatorname{sn}^2\!\left(\tfrac12\sqrt{r_{31}r_{42}}\,I_r - \mathcal{F}_o \,\middle|\, k\right)},
+\label{eq:rs}
+\end{equation}
+\begin{equation}
+\mathcal{F}_o = F\!\left(\arcsin\sqrt{\frac{r_{31}}{r_{41}}}\;\middle|\;k\right),
+\qquad
+k = \frac{r_{32}\,r_{41}}{r_{31}\,r_{42}},
+\end{equation}
+after Mino time $I_r$, where $\operatorname{sn}$ is the Jacobi elliptic sine.
+Note that $\mathcal{F}_o$ (built from the radial roots) differs from $F_o$ in
+Eq.~\eqref{eq:Gtheta} (built from the polar roots).
+
+\subsection{Classes of rays}
+
+The roots are ordered $r_i \le r_j$ for $i < j$ whenever both are real, and
+$r_4$ is the largest real root outside the horizon \cite{GL2020lensing}.
+Rays reaching the observer fall into two classes:
+\begin{itemize}
+  \item \textbf{Outside the critical curve:} all four roots are real and
+        $r_4 > r_+$. The ray has a radial turning point at $r_4$ and returns
+        to infinity (case (2) of \cite{GL2020null}).
+  \item \textbf{Inside the critical curve:} the ray has no turning point
+        outside the horizon and falls into the black hole. Either all four
+        roots are real with $r_4 \le r_+$ (again case (2)), or $r_3 = \bar r_4$
+        are complex conjugates (case (3)).
+\end{itemize}
+On the critical curve itself, $r_3 = r_4$.
+
+Equation~\eqref{eq:rs} is manifestly real in case (2), and it remains valid in
+all cases \cite{GL2020null}. In case (3) it is real only after cancellation of
+imaginary parts, so the following equivalent, manifestly real form is preferred
+numerically. Defining
+\begin{equation}
+A = \sqrt{r_{32}\,r_{42}} > 0, \qquad
+B = \sqrt{r_{31}\,r_{41}} > 0, \qquad
+k_3 = \frac{(A+B)^2 - r_{21}^2}{4AB} \in (0,1),
+\end{equation}
+the source radius in case (3) is
+\begin{equation}
+r_s(I_r) = \frac{\left(B r_2 - A r_1\right) + \left(B r_2 + A r_1\right)\operatorname{cn}\!\left(X_3 \,\middle|\, k_3\right)}
+                 {\left(B - A\right) + \left(B + A\right)\operatorname{cn}\!\left(X_3 \,\middle|\, k_3\right)},
+\qquad
+X_3 = \sqrt{AB}\,I_r - F\!\left(\arccos\frac{A - B}{A + B}\;\middle|\;k_3\right),
+\label{eq:rs3}
+\end{equation}
+where $\operatorname{cn}$ is the Jacobi elliptic cosine. This follows from
+inverting the case (3) radial antiderivative \cite{GL2020lensing,GL2020null}
+\begin{equation}
+\mathcal{I}_r^{(3)}(r) = \frac{1}{\sqrt{AB}}\,
+F\!\left(\arccos\frac{A(r - r_1) - B(r - r_2)}{A(r - r_1) + B(r - r_2)}\;\middle|\;k_3\right)
+\end{equation}
+along the ray from the observer, $\mathcal{I}_r^{(3)}(r_s) = \mathcal{I}_r^{(3)}(\infty) - I_r$.
+
+\subsection{Total Mino time}
+
+The Mino time available along the portion of the ray in the Kerr exterior is
+\begin{equation}
+I_r^{\rm total} =
+\begin{cases}
+2\displaystyle\int_{r_4}^{\infty}\frac{dr}{\sqrt{\mathcal{R}(r)}}, & r_4 \in \mathbb{R},\; r_4 > r_+ \quad \text{(outside the critical curve)}, \\[2.5ex]
+\displaystyle\int_{r_+}^{\infty}\frac{dr}{\sqrt{\mathcal{R}(r)}}, & \text{otherwise (inside the critical curve)}.
+\end{cases}
+\end{equation}
+In closed form \cite{GL2020lensing}, using the case (2) antiderivative
+\begin{equation}
+\mathcal{I}_r^{(2)}(r) = \frac{2}{\sqrt{r_{31}r_{42}}}\,
+F\!\left(\arcsin\sqrt{\frac{r - r_4}{r - r_3}\,\frac{r_{31}}{r_{41}}}\;\middle|\;k\right),
+\end{equation}
+\begin{equation}
+I_r^{\rm total} =
+\begin{cases}
+\dfrac{4}{\sqrt{r_{31}r_{42}}}\,\mathcal{F}_o, & \text{outside the critical curve}, \\[2.5ex]
+\dfrac{2}{\sqrt{r_{31}r_{42}}}\,\mathcal{F}_o - \mathcal{I}_r^{(2)}(r_+), & \text{inside, all roots real}, \\[2.5ex]
+\dfrac{1}{\sqrt{AB}}\,F\!\left(\arccos\dfrac{A - B}{A + B}\;\middle|\;k_3\right) - \mathcal{I}_r^{(3)}(r_+), & \text{inside, } r_3 = \bar r_4.
+\end{cases}
+\end{equation}
+For rays outside the critical curve the radial turning point at $r_4$ is
+reached at $I_r = I_r^{\rm total}/2$, by symmetry of the integral.
+
+%----------------------------------------------------------------------
+\section{Equatorial Crossings}
+
+Equating radial and polar Mino times, the $m$-th equatorial crossing of the
+ray from $(\alpha,\beta)$ occurs at
+\begin{equation}
+r_m(\alpha,\beta) = r_s\!\left(G_\theta^{m}\right),
+\qquad \text{for each } m \text{ with } 0 < G_\theta^{m} < I_r^{\rm total}.
+\end{equation}
+The largest admissible index is\footnote{The printed Eq.~(C8) of
+\cite{GLM2020} omits the factor $I_r^{\rm total}$ in the numerator; the form
+given here follows directly from the condition $G_\theta^m < I_r^{\rm total}$
+with Eq.~\eqref{eq:Gtheta}.}
+\begin{equation}
+N(\alpha,\beta) = \left\lfloor
+\frac{a\sqrt{-u_-}\,I_r^{\rm total} + \operatorname{sign}(\beta)\,F_o}{2K(u_+/u_-)}
+\right\rfloor .
+\end{equation}
+It is convenient to label crossings by image order
+\begin{equation}
+n = m - H(\beta), \qquad n = 0,1,2,\dots,
+\end{equation}
+where $H$ is the Heaviside step function, so that $n = 0$ is the direct image
+and $n \ge 1$ are the successive lensed (photon-ring) images for every pixel.
+
+%----------------------------------------------------------------------
+\section{Redshift Factor}
+
+The redshift factor $g = \nu_{\rm obs}/\nu_{\rm em} = 1/(-p_\mu u^\mu)$, with
+the photon normalized to $p_t = -1$, $p_\phi = \lambda$, depends only on the
+source radius $r_s$ and on $\alpha$ (through $\lambda$) \cite{GLM2020}:
+\begin{equation}
+g(r_s,\alpha) =
+\begin{cases}
+g_{\rm orbit}, & r_s \ge r_{\rm ISCO}, \\
+g_{\rm infall}, & r_s < r_{\rm ISCO}.
+\end{cases}
+\end{equation}
+
+\paragraph{Circular orbits.}
+\begin{equation}
+g_{\rm orbit} = \frac{1}{u^t\left(1 - \Omega\lambda\right)}
+= \frac{\sqrt{r_s^3 - 3r_s^2 + 2a\,r_s^{3/2}}}{r_s^{3/2} + a - \lambda}.
+\end{equation}
+
+\paragraph{Plunging flow.} With the four-velocity of Section~3.2 and the
+photon's covariant radial momentum
+\begin{equation}
+p_r = g_{rr}\,p^r = \frac{\Sigma}{\Delta}\cdot\frac{\pm_r\sqrt{\mathcal{R}}}{\Sigma}
+= \frac{\pm_r\sqrt{\mathcal{R}(r_s)}}{\Delta(r_s)},
+\end{equation}
+the redshift factor is\footnote{The printed Eq.~(B15) of \cite{GLM2020}
+multiplies by $\Delta(r_s)$ rather than dividing. That form is dimensionally
+inconsistent ($u^t$ is dimensionless while $\Delta\sqrt{\mathcal{R}}$ scales
+as $r^4$); the expression here follows from $p_r = g_{rr}p^r$.}
+\begin{equation}
+g_{\rm infall} = \frac{1}{\,u^t - \lambda\,u^\phi - u^r\,\dfrac{\pm_r\sqrt{\mathcal{R}(r_s)}}{\Delta(r_s)}\,}.
+\end{equation}
+Here $\pm_r$ is the sign of the photon's radial motion at emission: $+$ for
+rays inside the critical curve, and for rays outside it $+$ if the crossing
+lies on the outgoing leg after the turning point ($I_r < I_r^{\rm total}/2$),
+$-$ otherwise.
+
+This single factor contains the Doppler shift, the transverse Doppler effect,
+and gravitational redshift; none of them should be applied separately.
+
+%----------------------------------------------------------------------
+\section{Observed Image}
+
+Tracing each ray back through the emitting plane and summing over its
+crossings gives \cite{GLM2020}
+\begin{equation}
+I_{\rm obs}(\alpha,\beta) = \sum_{n} f_n\; g^4\!\left(r_n,\alpha\right)\, I_{\rm em}(r_n),
+\qquad
+f_n = \begin{cases} 1, & n = 0, \\ f, & n \ge 1, \end{cases}
+\label{eq:Iobs}
+\end{equation}
+where the sum runs over all admissible crossings of Section~8. The power
+$g^4$ makes $I_{\rm obs}$ bolometric. Replacing $g^4 \to g^3$ gives the
+specific intensity $I_\nu$ of a source with a flat spectrum; GLM find the
+difference small and degenerate with the choice of emission profile. The
+fudge factor $f$ mimics the extra path length that lensed rays accumulate
+through a geometrically thick flow: $f = 1$ is a strictly equatorial disk,
+and GLM survey $f \in \{1, 1.5, 2\}$ with $f = 1.5$ as their best guess.
+
+GLM index the fudge factor by the crossing label $m$ ($f_m = 1$ for $m = 0$,
+$f$ for $m > 0$). Because $m$ counts polar turning points, rays with
+$\beta > 0$ have no $m = 0$ crossing and their direct image is $m = 1$; read
+literally, this would apply $f$ to the direct image on half of the screen.
+Here $f$ is assigned by image order $n$ instead, so that it acts only on the
+lensed images $n \ge 1$, which is its stated purpose. Whether this matches the
+authors' implementation should be confirmed against AART \cite{AART2023}.
+
+Since the normalization of $I_{\rm em}$ is arbitrary, the normalized image
+\begin{equation}
+\hat I(\alpha,\beta) = \frac{I_{\rm obs}(\alpha,\beta)}{\max I_{\rm obs}}
+\end{equation}
+depends on
+\begin{equation}
+\underbrace{(a,\;\theta_o)}_{\text{physical parameters}}
+\quad\text{and}\quad
+\underbrace{(\gamma,\;\mu,\;\sigma,\;f)}_{\text{emission nuisance parameters}}.
+\end{equation}
+The physical scale of the image follows from $M/D$; for M87$^*$,
+$M/D \approx 3.62\,\psi~\mu{\rm as}$ with $\psi = 1$ corresponding to
+$M = 6.2\times10^9\,M_\odot$ and $D = 16.9$~Mpc \cite{GLM2020}.
+
+%----------------------------------------------------------------------
+\section{Parameter Choices in GLM}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lccc}
+\toprule
+ & Survey & Best guess & Alternative \\
+\midrule
+Spin $a$             & $0.01,\;0.5,\;0.99$       & $0.94$ & $0.01$ \\
+Inclination $\theta_o$ & $10^\circ,\;20^\circ,\;30^\circ$ & $17^\circ$ & $10^\circ$ \\
+Emission profile     & 1, 2, 3                   & 1      & truncated at the ISCO \\
+Fudge factor $f$     & $1,\;1.5,\;2$             & $1.5$  & $1$ \\
+\bottomrule
+\end{tabular}
+\caption{Parameters used by GLM for M87$^*$. Inclinations above $30^\circ$
+are disfavored by observations of M87$^*$.}
+\end{table}
+
+%----------------------------------------------------------------------
+\section{Limitations and Validation}
+
+\subsection{Limitations}
+
+\begin{itemize}
+  \item \textbf{Equatorial approximation.} Real low-luminosity flows are
+        geometrically thick; $f$ is a phenomenological correction, not a
+        derived quantity.
+  \item \textbf{Optical depth.} Synchrotron self-absorption is neglected; the
+        model is valid only where the flow is optically thin
+        ($\nu \gtrsim 230$~GHz for M87$^*$ and Sgr~A$^*$).
+  \item \textbf{Stationarity and axisymmetry.} Turbulent variability is
+        absent from the base model.
+  \item \textbf{Bolometric emission.} The conversion $I_\nu \propto I_{\rm obs}$
+        is assumed independent of position on the image.
+  \item \textbf{Spin information.} Because emission continues inside the ISCO,
+        there is no sharp inner edge at $r_{\rm ISCO}$; spin enters through
+        the plunging-region redshift, the Doppler asymmetry, and the shape and
+        size of the $n \ge 1$ photon rings.
+\end{itemize}
+
+\subsection{Validation tests}
+
+Several conventions above are not stated explicitly in \cite{GLM2020} and
+must be confirmed numerically: the image-order labels $n = m - H(\beta)$ and
+the assignment of $f$ by image order, the sign $\pm_r$ in $g_{\rm infall}$,
+and the agreement of Eqs.~\eqref{eq:rs} and \eqref{eq:rs3} in case (3). A
+generator implementing this model should pass the following tests before it
+is used to build a training set.
+
+\begin{enumerate}
+  \item \textbf{Schwarzschild limit ($a \to 0$).} The image must reduce to the
+        standard non-spinning result, with the $n \ge 1$ rings converging to
+        the circle $\sqrt{\alpha^2 + \beta^2} = 3\sqrt{3} \approx 5.196$.
+        \emph{Tests:} the radial roots, Eq.~\eqref{eq:rs}, and the crossing
+        count $N$.
+  \item \textbf{Critical curve.} For $a > 0$, the $n \ge 1$ rings must
+        converge to Bardeen's analytic critical curve \cite{Bardeen1973},
+        traced by the bound photon orbits $\tilde r \in [\tilde r_-, \tilde r_+]$:
+        \begin{equation}
+        \lambda(\tilde r) = a + \frac{\tilde r}{a}\left[\tilde r - \frac{2\Delta(\tilde r)}{\tilde r - 1}\right],
+        \qquad
+        \eta(\tilde r) = \frac{\tilde r^3}{a^2}\left[\frac{4\Delta(\tilde r)}{(\tilde r - 1)^2} - \tilde r\right],
+        \end{equation}
+        \begin{equation}
+        \tilde r_\pm = 2\left[1 + \cos\!\left(\frac23\arccos(\pm a)\right)\right],
+        \end{equation}
+        mapped to the screen with the relations of Section~5.
+        \emph{Tests:} the image-order labels and the treatment of rays inside
+        versus outside the critical curve.
+  \item \textbf{Face-on symmetry ($\theta_o \to 0$).} The image must be
+        axisymmetric about the origin.
+        \emph{Tests:} the sign conventions for $\beta$ and in $G_\theta^m$.
+  \item \textbf{Doppler asymmetry.} For $\theta_o > 0$, the side of the image
+        where the gas approaches the observer must be brighter.
+        \emph{Tests:} the sign of $\lambda$ and the redshift factor $g$.
+  \item \textbf{Continuity at the ISCO.} The observed intensity must be
+        continuous across the image of $r_{\rm ISCO}$, where $g_{\rm orbit}$
+        hands over to $g_{\rm infall}$.
+        \emph{Tests:} the plunging four-velocity, the factor $\Delta$, and the
+        sign $\pm_r$ in $g_{\rm infall}$.
+  \item \textbf{Comparison with AART.} Images and $r_m(\alpha,\beta)$ maps must
+        agree pixel by pixel with the AART code \cite{AART2023}, which
+        implements this model.
+        \emph{Tests:} the full pipeline.
+\end{enumerate}
+
+%----------------------------------------------------------------------
+\begin{thebibliography}{9}
+
+\bibitem{GLM2020}
+S.~E. Gralla, A.~Lupsasca, and D.~P. Marrone,
+``The shape of the black hole photon ring: A precise test of strong-field
+general relativity,''
+\emph{Phys.\ Rev.\ D} \textbf{102}, 124004 (2020), arXiv:2008.03879.
+
+\bibitem{GL2020lensing}
+S.~E. Gralla and A.~Lupsasca,
+``Lensing by Kerr black holes,''
+\emph{Phys.\ Rev.\ D} \textbf{101}, 044031 (2020), arXiv:1910.12873.
+
+\bibitem{GL2020null}
+S.~E. Gralla and A.~Lupsasca,
+``Null geodesics of the Kerr exterior,''
+\emph{Phys.\ Rev.\ D} \textbf{101}, 044032 (2020), arXiv:1910.12881.
+
+\bibitem{Bardeen1972}
+J.~M. Bardeen, W.~H. Press, and S.~A. Teukolsky,
+``Rotating black holes: Locally nonrotating frames, energy extraction, and
+scalar synchrotron radiation,''
+\emph{Astrophys.\ J.} \textbf{178}, 347--370 (1972).
+
+\bibitem{Bardeen1973}
+J.~M. Bardeen, ``Timelike and null geodesics in the Kerr metric,''
+in \emph{Black Holes (Les Astres Occlus)},
+ed.\ C.~DeWitt and B.~S. DeWitt (Gordon and Breach, New York, 1973),
+pp.~215--239.
+
+\bibitem{Cunningham1975}
+C.~T. Cunningham,
+``The effects of redshifts and focusing on the spectrum of an accretion disk
+around a Kerr black hole,''
+\emph{Astrophys.\ J.} \textbf{202}, 788--802 (1975).
+
+\bibitem{Mino2003}
+Y.~Mino,
+``Perturbative approach to an orbital evolution around a supermassive black
+hole,''
+\emph{Phys.\ Rev.\ D} \textbf{67}, 084027 (2003).
+
+\bibitem{Johnson1949}
+N.~L. Johnson,
+``Systems of frequency curves generated by methods of translation,''
+\emph{Biometrika} \textbf{36}, 149--176 (1949).
+
+\bibitem{AART2023}
+A.~C\'ardenas-Avenda\~no, A.~Lupsasca, and H.~Zhu,
+``Adaptive analytical ray tracing of black hole photon rings,''
+\emph{Phys.\ Rev.\ D} \textbf{107}, 043030 (2023), arXiv:2211.07469.
+
+\end{thebibliography}
+
+\end{document}
