@@ -8,13 +8,13 @@
 \hypersetup{
   colorlinks = true,
   linkcolor  = blue!70!black,
-  citecolor  = green!50!black,
+  citecolor  = blue!70!black,
   urlcolor   = magenta!70!black
 }
 
 \title{Optically Thin Equatorial Emission and Analytic Kerr Ray Tracing:\\
 the Gralla--Lupsasca--Marrone Model}
-\author{Aaron Barrios}
+\author{Aaron Barrios\thanks{Prepared with AI assistance; see the \hyperref[sec:ai]{AI Acknowledgments}.}}
 \date{\today}
 
 \begin{document}
@@ -37,8 +37,10 @@ geodesic papers \cite{GL2020lensing,GL2020null} on which it is built.
         plunging geodesics inside it, so emission extends down to the horizon.
   \item The finite geometric thickness of the flow is represented only by a
         multiplicative ``fudge factor'' $f$ on the lensed images.
-  \item The model is bolometric; the overall normalization is fixed
-        externally, and only the image morphology is predicted.
+  \item Images represent the specific intensity at a single observing
+        frequency (230~GHz) for a flat emission spectrum. The overall
+        normalization is fixed externally, and only the image morphology is
+        predicted.
 \end{enumerate}
 
 %----------------------------------------------------------------------
@@ -352,26 +354,44 @@ and gravitational redshift; none of them should be applied separately.
 Tracing each ray back through the emitting plane and summing over its
 crossings gives \cite{GLM2020}
 \begin{equation}
-I_{\rm obs}(\alpha,\beta) = \sum_{n} f_n\; g^4\!\left(r_n,\alpha\right)\, I_{\rm em}(r_n),
+I_{\rm obs}(\alpha,\beta) = \sum_{n} f_n\; g^p\!\left(r_n,\alpha\right)\, I_{\rm em}(r_n),
 \qquad
 f_n = \begin{cases} 1, & n = 0, \\ f, & n \ge 1, \end{cases}
+\qquad p = 3,
 \label{eq:Iobs}
 \end{equation}
-where the sum runs over all admissible crossings of Section~8. The power
-$g^4$ makes $I_{\rm obs}$ bolometric. Replacing $g^4 \to g^3$ gives the
-specific intensity $I_\nu$ of a source with a flat spectrum; GLM find the
-difference small and degenerate with the choice of emission profile. The
-fudge factor $f$ mimics the extra path length that lensed rays accumulate
+where the sum runs over all admissible crossings of Section~8.
+
+\paragraph{Power of the redshift factor.} Light emitted at frequency
+$\nu/g$ is observed at $\nu$, and invariance of $I_\nu/\nu^3$ along the ray
+gives
+\begin{equation}
+I_\nu^{\rm obs}(\nu) = g^3\, I_\nu^{\rm em}(\nu/g).
+\end{equation}
+For an emission spectrum $I_\nu^{\rm em} \propto \nu^{-\alpha_\nu}$ this
+becomes $I_\nu^{\rm obs} = g^{3+\alpha_\nu} I_\nu^{\rm em}(\nu)$, so
+$p = 3 + \alpha_\nu$; integrating over frequency instead
+($d\nu_{\rm obs} = g\,d\nu_{\rm em}$) gives the bolometric value $p = 4$, which
+is the choice made by GLM \cite{GLM2020}. Our images represent EHT
+observations at a single frequency, 230~GHz, where the spectra of Sgr~A$^*$
+and M87$^*$ are close to flat ($\alpha_\nu \approx 0$), so we adopt $p = 3$.
+A larger $p$ strengthens the Doppler asymmetry, since the brightness contrast
+scales as $(g_{\max}/g_{\min})^p$, and further dims the strongly redshifted
+inner region; GLM find the difference between $p = 3$ and $p = 4$ small and
+largely degenerate with the choice of emission profile.
+
+\paragraph{Fudge factor.} The fudge factor $f$ mimics the extra path length that lensed rays accumulate
 through a geometrically thick flow: $f = 1$ is a strictly equatorial disk,
 and GLM survey $f \in \{1, 1.5, 2\}$ with $f = 1.5$ as their best guess.
 
-GLM index the fudge factor by the crossing label $m$ ($f_m = 1$ for $m = 0$,
-$f$ for $m > 0$). Because $m$ counts polar turning points, rays with
-$\beta > 0$ have no $m = 0$ crossing and their direct image is $m = 1$; read
-literally, this would apply $f$ to the direct image on half of the screen.
-Here $f$ is assigned by image order $n$ instead, so that it acts only on the
-lensed images $n \ge 1$, which is its stated purpose. Whether this matches the
-authors' implementation should be confirmed against AART \cite{AART2023}.
+The fudge factor is assigned by image order $n$, so it multiplies the lensed
+images $n \ge 1$ across the entire screen and never the direct image, as in
+the AART implementation \cite{AART2023}. GLM write the same rule as $f_m$,
+where in their Eq.~(6) $m$ counts equatorial crossings along the backward ray
+(our $n$); in their Appendix~C the same symbol denotes the number of polar
+turning points, as in Eq.~\eqref{eq:Gtheta}. The two coincide only for
+$\beta < 0$, which is why this document uses $n$ for crossing order and $m$
+for turning points.
 
 Since the normalization of $I_{\rm em}$ is arbitrary, the normalized image
 \begin{equation}
@@ -420,8 +440,10 @@ are disfavored by observations of M87$^*$.}
         ($\nu \gtrsim 230$~GHz for M87$^*$ and Sgr~A$^*$).
   \item \textbf{Stationarity and axisymmetry.} Turbulent variability is
         absent from the base model.
-  \item \textbf{Bolometric emission.} The conversion $I_\nu \propto I_{\rm obs}$
-        is assumed independent of position on the image.
+  \item \textbf{Spectral shape.} A flat spectrum ($\alpha_\nu = 0$, hence
+        $p = 3$) is assumed everywhere; in a real flow the spectral index
+        varies with radius, which would change the effective $p$ across the
+        image.
   \item \textbf{Spin information.} Because emission continues inside the ISCO,
         there is no sharp inner edge at $r_{\rm ISCO}$; spin enters through
         the plunging-region redshift, the Doppler asymmetry, and the shape and
@@ -475,6 +497,17 @@ is used to build a training set.
 \end{enumerate}
 
 %----------------------------------------------------------------------
+\section*{AI Acknowledgments}
+\phantomsection\label{sec:ai}
+
+This document was prepared with the assistance of Claude (Anthropic), used
+through Claude Code. The author directed the scope, content, and modeling
+choices. Claude drafted the text and equations from the cited literature,
+checked them against the original papers and the AART source code, verified
+the references, and supplied derivations and validation tests where the
+literature leaves details unstated. The author is responsible for the final
+content.
+
 \begin{thebibliography}{9}
 
 \bibitem{GLM2020}

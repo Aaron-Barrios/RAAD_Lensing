@@ -12,3 +12,9 @@
 
 # arXiv source tarballs of reference papers
 arXiv-*.tar.gz
+
+# Cloned third-party code (AART)
+aart/
+
+# Python virtual environment
+.venv/
