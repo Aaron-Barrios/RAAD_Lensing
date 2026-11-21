@@ -18,3 +18,7 @@ aart/
 
 # Python virtual environment
 .venv/
+
+# Data
+dataset*/
+*.zip

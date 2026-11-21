@@ -24,6 +24,11 @@
         "**/*.out": true,
         "**/*.synctex.gz": true
     },
+    "[python]": {
+        "editor.insertSpaces": false,
+        "editor.detectIndentation": false,
+        "editor.tabSize": 4
+    },
     "python.analysis.extraPaths": [
         "./aart"
     ]
