@@ -1,0 +1,8 @@
+output,value
+Training pairs,96
+Validation pairs,24
+Test pairs,24
+Noisy images,"torch.Size([16, 1, 512, 512])"
+Clean images,"torch.Size([16, 1, 512, 512])"
+Spin,torch.Size([16])
+Inclination,torch.Size([16])
