@@ -22,3 +22,5 @@ aart/
 # Data
 dataset*/
 *.zip
+# Python bytecode
+__pycache__/

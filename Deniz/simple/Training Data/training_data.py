@@ -14,7 +14,7 @@ output_dir.mkdir(parents=True, exist_ok=True)
 
 pairs = []
 
-for path in sorted(noise_dir.glob("*_noise_*peak.npz")):
+for path in sorted(noise_dir.glob("*_psf_*uas_noise_*peak.npz")):
 
     clean_name = path.stem.split("_psf_", 1)[0] + ".npz"
     clean_path = clean_dir / clean_name
